@@ -312,7 +312,7 @@ def create_zfs_snapshots_and_mount(zfs_pools):
         return snapshot_info
 
     logger.info("Starte Erstellung und Mounten von ZFS-Snapshots...")
-    timestamp_str = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H-%M-%S")
     zfs_base_dir = os.path.join(SCRIPT_TMP_DIR, "zfs")
 
     # Unterordner "zfs" anlegen
