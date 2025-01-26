@@ -138,7 +138,7 @@ Dieses Skript ermöglicht ein automatisches, sicheres Backup von lokalen Verzeic
      ```
    - Und dort z.B. einmal täglich um 04:00 Uhr ausführen lassen:  
      ```
-     0 4 * * * /usr/local/bin/automated_borg_backup.py
+     0 4 * * * /usr/local/bin/automated_borg_backup.py > /dev/null
      ```
    - (Je nach Installation ist evtl. der vollständige Pfad zu Python nötig oder ein Shebang oben im Skript.)
 
