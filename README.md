@@ -1,5 +1,5 @@
 ## Dokumentation für das Borg-Backup-Skript
-- **Dieser Code wurde teilweise mit Unterstützung von ChatGPT generiert.**
+- **Dieser Code wurde teilweise mit Unterstützung von KI generiert.**
 
 ### Überblick
 

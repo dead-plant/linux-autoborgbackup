@@ -40,7 +40,7 @@ SCRIPT_NAME = "automated_borg_backup"   # Dient u.a. für den Log- und Lockfile-
 # Neuer Pfad für unseren Skript-Temp-Ordner (enthält Lockfile, ggf. ZFS-Mounts usw.)
 SCRIPT_TMP_DIR = "/tmp/my_backup_tempdir"
 
-LOCKFILE_PATH = os.path.join(SCRIPT_TMP_DIR, f"{SCRIPT_NAME}.lock")
+LOCKFILE_PATH = os.path.join(SCRIPT_TMP_DIR, f".lock")
 
 # Logging-Einstellungen
 LOG_DIR = "/var/log/automated_borg_backup"  # Ordner, in dem die Logfiles erstellt werden
