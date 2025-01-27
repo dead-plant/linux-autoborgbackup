@@ -64,7 +64,7 @@ Dieses Skript ermöglicht ein automatisches, sicheres Backup von lokalen Verzeic
 
 #### 1. Install Dependencies
 ```shell
-   sudo apt install cron python3 borgbackup -y
+   sudo apt install git cron python3 borgbackup -y
 ```
 If you want to use zfs:
 ```shell
