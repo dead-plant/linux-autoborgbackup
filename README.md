@@ -5,55 +5,138 @@
 
 Dieses Skript ermöglicht ein automatisches, sicheres Backup von lokalen Verzeichnissen und optionalen ZFS-Pools mithilfe von [BorgBackup](https://www.borgbackup.org). Es integriert sich in bestehende Linux-Umgebungen (getestet z.B. auf Debian) und erledigt wichtige Aufgaben wie:
 
-- **Backup-Erstellung** in frei konfigurierbaren Borg-Repositories, lokal oder remote.  
-- **ZFS-Unterstützung**: Automatisches Erstellen von Snapshots, Read-Only-Mounten der Snapshots, Backup über Borg, anschließendes Unmount und Löschen der Snapshots.  
-- **Lock-Mechanismus**: Das Skript wird nur einmal pro Zeitpunkt ausgeführt (ein vorhandenes Lock-File verhindert parallelen Start).  
-- **Fehlerbehandlung** mit ausführlichem Logging (inkl. gesonderter Log-Datei pro Lauf).  
-- **E-Mail-Benachrichtigungen** über Erfolg oder Fehlschläge (inklusive “error only”-Modus).  
-- **Prune & Compact**: Automatisches Löschen älterer Backups nach bestimmten Aufbewahrungsregeln (täglich, wöchentlich, monatlich, jährlich) sowie optionales Kompaktieren der Borg-Repositories.  
-- **Logfile-Aufräumfunktion**: Alte Logdateien können automatisch gelöscht werden, damit keine unendliche Ansammlung entsteht.  
+- **Backup-Erstellung** in frei konfigurierbaren Borg-Repositories, lokal oder remote.
+- **ZFS-Unterstützung**: Automatisches Erstellen von Snapshots, Read-Only-Mounten der Snapshots, Backup über Borg, anschließendes Unmount und Löschen der Snapshots.
+- **Lock-Mechanismus**: Das Skript wird nur einmal pro Zeitpunkt ausgeführt (ein vorhandenes Lock-File verhindert parallelen Start).
+- **Fehlerbehandlung** mit ausführlichem Logging (inkl. gesonderter Log-Datei pro Lauf).
+- **E-Mail-Benachrichtigungen** über Erfolg oder Fehlschläge (inklusive “error only”-Modus).
+- **Prune & Compact**: Automatisches Löschen älterer Backups nach bestimmten Aufbewahrungsregeln (täglich, wöchentlich, monatlich, jährlich) sowie optionales Kompaktieren der Borg-Repositories.
+- **Logfile-Aufräumfunktion**: Alte Logdateien können automatisch gelöscht werden, damit keine unendliche Ansammlung entsteht.
 
 ### Funktionsweise
 
-1. **Skript-Temp-Ordner:**  
-   - Zu Beginn prüft das Skript (Funktion `check_script_tmp_dir()`), ob der temporäre Ordner bereits existiert.  
-   - Wenn noch nicht vorhanden, wird er angelegt.  
+1. **Skript-Temp-Ordner:**
+   - Zu Beginn prüft das Skript (Funktion `check_script_tmp_dir()`), ob der temporäre Ordner bereits existiert.
+   - Wenn noch nicht vorhanden, wird er angelegt.
    - Ist er nicht leer, bricht das Skript mit einer Fehlermeldung ab (z.B. wenn hier noch Reste eines vorherigen misslungenen Laufs liegen).
 
-2. **Lock-Mechanismus:**  
-   - Über `acquire_lock_or_exit()` legt das Skript eine Lock-Datei an, um parallele Ausführungen zu verhindern.  
-   - Ist bereits eine Lock-Datei vorhanden, beendet es sich mit einem Fehler.  
+2. **Lock-Mechanismus:**
+   - Über `acquire_lock_or_exit()` legt das Skript eine Lock-Datei an, um parallele Ausführungen zu verhindern.
+   - Ist bereits eine Lock-Datei vorhanden, beendet es sich mit einem Fehler.
    - Am Ende wird das Lock über `release_lock()` wieder gelöscht.
 
-3. **Backup-Logik:**  
-   - Konfigurationsvariablen (z.B. `BACKUP_DIRECTORIES`, `ZFS_POOLS`, `BORG_REPOSITORIES`) geben vor, was gesichert werden soll und wohin.  
-   - Im Hauptteil des Skripts (`main()`) werden der Reihe nach folgende Schritte durchlaufen:  
-     1. **ZFS-Snapshots** erstellen und mounten (falls in `ZFS_POOLS` Einträge vorhanden sind).  
-     2. **Backup (borg create)**:  
-        - Alles in `BACKUP_DIRECTORIES` **und** das gemountete ZFS-Verzeichnis (sofern vorhanden) wird in jedem Repository gesichert.  
-     3. **Verifizierung (borg check)**: Überprüfung des Repositories (ggf. mit `--verify-data`).  
-     4. **Prune (borg prune)**: Alte Backups werden gemäß den eingestellten Aufbewahrungsregeln (daily, weekly, monthly, yearly) entfernt.  
-     5. **Optionales (borg compact)**: Die Repositories können komprimiert / aufgeräumt werden.  
+3. **Backup-Logik:**
+   - Konfigurationsvariablen (z.B. `BACKUP_DIRECTORIES`, `ZFS_POOLS`, `BORG_REPOSITORIES`) geben vor, was gesichert werden soll und wohin.
+   - Im Hauptteil des Skripts (`main()`) werden der Reihe nach folgende Schritte durchlaufen:
+      1. **ZFS-Snapshots** erstellen und mounten (falls in `ZFS_POOLS` Einträge vorhanden sind).
+      2. **Backup (borg create)**:
+         - Alles in `BACKUP_DIRECTORIES` **und** das gemountete ZFS-Verzeichnis (sofern vorhanden) wird in jedem Repository gesichert.
+      3. **Verifizierung (borg check)**: Überprüfung des Repositories (ggf. mit `--verify-data`).
+      4. **Prune (borg prune)**: Alte Backups werden gemäß den eingestellten Aufbewahrungsregeln (daily, weekly, monthly, yearly) entfernt.
+      5. **Optionales (borg compact)**: Die Repositories können komprimiert / aufgeräumt werden.
    - Abschließend werden **ZFS-Snapshots** ungemountet und zerstört.
 
-4. **Logging und Fehlerbehandlung:**  
-   - Das Skript schreibt zu jedem Lauf eine neue Logdatei (gespeichert in `LOG_DIR`).  
-   - **Erfolgreiche** Kommandos werden in `logger.debug()` mit entsprechenden Meldungen vermerkt.  
-   - Bei **Fehlermeldungen** wird `logger.error()` genutzt, und das Skript sammelt die Fehlgründe in einer Liste (`backup_fail_reasons`).  
+4. **Logging und Fehlerbehandlung:**
+   - Das Skript schreibt zu jedem Lauf eine neue Logdatei (gespeichert in `LOG_DIR`).
+   - **Erfolgreiche** Kommandos werden in `logger.debug()` mit entsprechenden Meldungen vermerkt.
+   - Bei **Fehlermeldungen** wird `logger.error()` genutzt, und das Skript sammelt die Fehlgründe in einer Liste (`backup_fail_reasons`).
    - Eine Zusammenfassung (Erfolg/Fehlschlag, Dauer des Backups, Fehlgründe) wird am Ende ausgegeben und ggf. per E-Mail verschickt.
 
-5. **E-Mail-Versand:**  
-   - Nach Abschluss aller Vorgänge versendet das Skript (außer im “error only”-Modus bei Erfolg) eine E-Mail mit der Zusammenfassung und dem **vollständigen** Log (inkl. Leerzeilen zur besseren Lesbarkeit).  
-   - Alle SMTP-Einstellungen werden in den Konfigurationsvariablen festgelegt.  
+5. **E-Mail-Versand:**
+   - Nach Abschluss aller Vorgänge versendet das Skript (außer im “error only”-Modus bei Erfolg) eine E-Mail mit der Zusammenfassung und dem **vollständigen** Log (inkl. Leerzeilen zur besseren Lesbarkeit).
+   - Alle SMTP-Einstellungen werden in den Konfigurationsvariablen festgelegt.
 
-6. **Logdateien aufräumen:**  
-   - Mithilfe von `garbage_collect_logs()` entfernt das Skript alte Logfiles, sodass nur die zuletzt festgelegte Anzahl (`LOG_GARBAGE_KEEP`) übrig bleibt.  
+6. **Logdateien aufräumen:**
+   - Mithilfe von `garbage_collect_logs()` entfernt das Skript alte Logfiles, sodass nur die zuletzt festgelegte Anzahl (`LOG_GARBAGE_KEEP`) übrig bleibt.
 
-7. **Nur Directories / Nur ZFS / Beides**  
-   - Falls `BACKUP_DIRECTORIES` leer ist, werden **nur** ZFS-Pools gesichert.  
-   - Falls `ZFS_POOLS` leer ist, werden **nur** Verzeichnisse gesichert.  
-   - Sind beide Listen nicht leer, wird beides gesichert.  
-   - Sind **beide** leer, bricht das Skript ab.  
+7. **Nur Directories / Nur ZFS / Beides**
+   - Falls `BACKUP_DIRECTORIES` leer ist, werden **nur** ZFS-Pools gesichert.
+   - Falls `ZFS_POOLS` leer ist, werden **nur** Verzeichnisse gesichert.
+   - Sind beide Listen nicht leer, wird beides gesichert.
+   - Sind **beide** leer, bricht das Skript ab.
+
+
+---
+
+### Installation guide for Proxmox VE with Hetzner Storagebox
+#### See Hetzner Documentation for additional information.
+- [https://community.hetzner.com/tutorials/install-and-configure-borgbackup](https://community.hetzner.com/tutorials/install-and-configure-borgbackup)
+
+#### 1. Install Dependencies
+```shell
+   sudo apt install cron python3 borgbackup -y
+```
+If you want to use zfs:
+```shell
+   sudo apt install zfs-utils -y
+```
+#### 2. Generate ssh key
+```shell
+   ssh-keygen -t ed25519 -C "hetzner-storagebox"
+```
+Then enter a path to store the key.
+#### 3. Copy the ssh public key to your storagebox account.
+```shell
+   ssh-copy-id -i .ssh/hetzner-storagebox.pub -p 23 -s uXXXXXX@uXXXXXX.your-storagebox.de
+```
+#### 4. Initialize borg repository.
+First I would recommend that you create a subdirectory for borg in your storagebox account. You can do that using WinSCP and entering your storagebox credentials.
+
+Set environment variables for borg:
+```shell
+   export BORG_RSH='ssh -i /home/userXY/.ssh/hetzner-storagebox.pub'
+```
+```shell
+   export BORG_PASSPHRASE='YourSecretPassphrase'
+```
+Initialize borg repository:
+```shell
+   borg init --encryption=repokey ssh://uXXXXXX@uXXXXXX.your-storagebox.de:23/./borg
+```
+Backup repo key. Safe this key in a secure location like your password manager:
+```shell
+   borg key export ssh://uXXXXXX@uXXXXXX.your-storagebox.de:23/./borg
+```
+Verify connection to borg repository. This should give an empty response at the time:
+```shell
+   borg list ssh://uXXXXXX@uXXXXXX.your-storagebox.de:23/./borg
+```
+#### 5. Download and install skript.
+Clone the GitHub repository:
+```shell
+   git clone https://github.com/dead-plant/linux-autoborgbackup.git
+```
+Make a temp directory in the script folder. This will later be used for the lock file and mounting zfs snapshots.
+You can skip this step if you want to use a different path for your temp directory.
+```shell
+  mkdir linux-autoborgbackup/tmp
+```
+Cd into the script directory.
+```shell
+  cd linux-autoborgbackup/
+```
+Change permissions of the script file to make it executable and protect it because it can contain login information.
+```shell
+  chmod 0700 automated_borg_backup-v1.py
+```
+#### 6. Configure the script.
+See the Configuration documentation below.
+Don't forget to set your temp directory.
+
+#### 7. Run initial backup.
+After configuring the script you should run the first backup manually.
+```shell
+   ./automated_borg_backup-v1.py
+```
+#### 8. Configure cron job.
+Configure cron job to run backups automatically. In this example the backup will run every day at 01:34.
+```shell
+   crontab -e
+```
+Paste in the following line:
+```shell
+   34 1 * * * /path_to_script/linux-autoborgbackup/automated_borg_backup-v1.py > /dev/null
+```
 
 ---
 
