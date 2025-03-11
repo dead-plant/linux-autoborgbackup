@@ -158,7 +158,7 @@ def setup_logging():
     return logfile_path
 
 
-def check_script_tmp_dir():
+def check_script_tmp_dir(logfile_path):
     """
     Prüft, ob der Skript-Temp-Ordner existiert, legt ihn ggf. an und
     wirft einen Fehler, falls er nicht leer ist.
@@ -169,11 +169,21 @@ def check_script_tmp_dir():
             logger.debug(f"SCRIPT_TMP_DIR erstellt: {SCRIPT_TMP_DIR}")
         except Exception as e:
             logger.error(f"Konnte den Skript-Temp-Ordner nicht erstellen: {e}")
+            send_email(
+                "[BorgBackup] FAILED: Cannot create TMP directory",
+                f"The backup script did not start because the tmp folder ({SCRIPT_TMP_DIR}) Cannot be created.",
+                logfile_path
+            )
             sys.exit(1)
     # Wenn Verzeichnis existiert, prüfen ob leer
     if os.listdir(SCRIPT_TMP_DIR):
         # Wenn nicht leer -> Fehler
         logger.error(f"Der Ordner {SCRIPT_TMP_DIR} ist nicht leer. Abbruch.")
+        send_email(
+            "[BorgBackup] FAILED: TMP Folder not empty",
+            f"The backup script did not start because the tmp folder ({SCRIPT_TMP_DIR}) is not empty. This may be caused by the script already running or not shutting down correctly.",
+            logfile_path
+        )
         sys.exit(1)
 
 
@@ -587,11 +597,11 @@ def main():
 
     logfile_path = setup_logging()
 
-    # Skript-Temp-Ordner prüfen
-    check_script_tmp_dir()
-
     # Lockfile setzen
     acquire_lock_or_exit(logfile_path)
+
+    # Skript-Temp-Ordner prüfen
+    check_script_tmp_dir(logfile_path)
 
     # Vor dem Backup prüfen, ob wir überhaupt etwas sichern können:
     dirs_empty = (len(BACKUP_DIRECTORIES) == 0)
