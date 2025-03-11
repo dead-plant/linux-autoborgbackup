@@ -597,11 +597,11 @@ def main():
 
     logfile_path = setup_logging()
 
-    # Lockfile setzen
-    acquire_lock_or_exit(logfile_path)
-
     # Skript-Temp-Ordner prüfen
     check_script_tmp_dir(logfile_path)
+
+    # Lockfile setzen
+    acquire_lock_or_exit(logfile_path)
 
     # Vor dem Backup prüfen, ob wir überhaupt etwas sichern können:
     dirs_empty = (len(BACKUP_DIRECTORIES) == 0)
