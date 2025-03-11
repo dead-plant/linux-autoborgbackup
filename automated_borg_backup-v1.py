@@ -30,6 +30,8 @@ import glob
 import subprocess
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import email.utils
+
 
 # =============================================================================
 # ========================== KONFIGURATIONSVARIABLEN ==========================
@@ -218,6 +220,7 @@ def send_email(subject, body_text, log_file_path):
     msg["From"] = f"{EMAIL_FROM_NAME} <{EMAIL_FROM_ADDRESS}>"
     msg["To"] = ", ".join(EMAIL_RECIPIENTS)
     msg["Subject"] = subject
+    msg["Date"] = email.utils.formatdate(localtime=True)
 
     # Logfile-Inhalt auslesen
     try:
