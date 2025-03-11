@@ -177,7 +177,7 @@ def check_script_tmp_dir():
         sys.exit(1)
 
 
-def acquire_lock_or_exit():
+def acquire_lock_or_exit(logfile_path):
     """
     Sorgt dafür, dass das Skript nur einmal zur gleichen Zeit ausgeführt wird.
     Erzeugt eine Lock-Datei und beendet sich, wenn es die Lock-Datei bereits gibt.
@@ -185,6 +185,11 @@ def acquire_lock_or_exit():
     if os.path.exists(LOCKFILE_PATH):
         # Lockfile existiert bereits
         logger.error("Lockfile existiert bereits. Ein weiteres Ausführen ist nicht erlaubt.")
+        send_email(
+            "[BorgBackup] FAILED: Backup Already Running",
+            f"The backup script did not start because a lockfile already exists at {LOCKFILE_PATH}.",
+            logfile_path
+        )
         sys.exit(1)
     else:
         # Lockfile erstellen
@@ -194,6 +199,11 @@ def acquire_lock_or_exit():
             logger.debug(f"Lockfile erstellt: {LOCKFILE_PATH}")
         except Exception as e:
             logger.error(f"Lockfile konnte nicht erstellt werden: {e}")
+            send_email(
+                "[BorgBackup] FAILED: Unable to create lock file",
+                f"The backup script did not start because the lockfile cant be created at {LOCKFILE_PATH}.",
+                logfile_path
+            )
             sys.exit(1)
 
 
@@ -581,7 +591,7 @@ def main():
     check_script_tmp_dir()
 
     # Lockfile setzen
-    acquire_lock_or_exit()
+    acquire_lock_or_exit(logfile_path)
 
     # Vor dem Backup prüfen, ob wir überhaupt etwas sichern können:
     dirs_empty = (len(BACKUP_DIRECTORIES) == 0)
